@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+
+# Build outputs
+frontend/admin/dist/
+frontend/user/dist/
+*.egg-info/
+
+# Environment
+.env
+backend/.env
+backend/tha_tennis.db
+backend/test.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads
+backend/uploads/*.xlsx
+backend/uploads/*.xls
+
+# Logs
+*.log
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Lock files (keep pnpm-lock and uv.lock)
+package-lock.json
+yarn.lock
