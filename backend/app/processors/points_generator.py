@@ -82,7 +82,7 @@ class PointsGenerator:
                 continue
             if rule.event_level and rule.event_level != tournament.level:
                 continue
-            if rule.group_name and rule.group_name != tournament.group_name:
+            if rule.group_name and rule.group_name != "通用" and rule.group_name != tournament.group_name:
                 continue
             if rule.result_type and rule.result_type != result.result_type:
                 continue
