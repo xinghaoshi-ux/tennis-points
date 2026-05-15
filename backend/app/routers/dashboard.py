@@ -43,7 +43,7 @@ async def get_dashboard(
 
     return {
         "data": {
-            "current_season": active_season.name if active_season else None,
+            "current_season": {"id": active_season.id, "name": active_season.name} if active_season else None,
             "player_count": player_count,
             "tournament_count": tournament_count,
             "points_record_count": points_count,
