@@ -33,6 +33,13 @@ class ExcelParser:
             return False
         return str(val).strip().lower() in IS_TRUE_VALUES
 
+    async def _get_or_create_player(self, name: str):
+        p = await self.player_repo.get_by_name(name)
+        if p:
+            return p, True
+        p = await self.player_repo.create(full_name=name)
+        return p, False
+
     async def parse(self, file_path: str, tournament_id: int) -> list[dict]:
         tournament = await self.tournament_repo.get_by_id(tournament_id)
         wb = load_workbook(file_path, read_only=True)
@@ -60,25 +67,19 @@ class ExcelParser:
             error_message = None
 
             if player1_name:
-                p1 = await self.player_repo.get_by_name(player1_name)
-                if p1:
-                    player1_id = p1.id
-                    player1_matched = True
-                else:
-                    row_status = "warning"
-                    error_message = f"选手'{player1_name}'未匹配"
+                p1, existed = await self._get_or_create_player(player1_name)
+                player1_id = p1.id
+                player1_matched = True
+                if not existed:
+                    error_message = f"选手'{player1_name}'已自动创建"
 
             if player2_name:
-                p2 = await self.player_repo.get_by_name(player2_name)
-                if p2:
-                    player2_id = p2.id
-                    player2_matched = True
-                else:
-                    if error_message:
-                        error_message += f"；选手'{player2_name}'未匹配"
-                    else:
-                        error_message = f"选手'{player2_name}'未匹配"
-                    row_status = "warning"
+                p2, existed = await self._get_or_create_player(player2_name)
+                player2_id = p2.id
+                player2_matched = True
+                if not existed:
+                    msg = f"选手'{player2_name}'已自动创建"
+                    error_message = f"{error_message}；{msg}" if error_message else msg
 
             preview.append({
                 "row_number": idx,
@@ -121,7 +122,6 @@ class ExcelParser:
 
             members = []
             member_ids = []
-            all_matched = True
             error_message = None
 
             for col_idx in range(2, len(row)):
@@ -145,16 +145,13 @@ class ExcelParser:
                     is_cross_border = True
 
             for name in members:
-                p = await self.player_repo.get_by_name(name)
-                if p:
-                    member_ids.append({"name": name, "id": p.id, "matched": True})
-                else:
-                    member_ids.append({"name": name, "id": None, "matched": False})
-                    all_matched = False
+                p, existed = await self._get_or_create_player(name)
+                member_ids.append({"name": name, "id": p.id, "matched": True})
+                if not existed:
                     if error_message:
-                        error_message += f"；选手'{name}'未匹配"
+                        error_message += f"；选手'{name}'已自动创建"
                     else:
-                        error_message = f"选手'{name}'未匹配"
+                        error_message = f"选手'{name}'已自动创建"
 
             preview.append({
                 "row_number": idx,
@@ -166,7 +163,7 @@ class ExcelParser:
                 "member_count": len(members),
                 "is_cross_province": is_cross_province,
                 "is_cross_border": is_cross_border,
-                "row_status": "normal" if all_matched else "warning",
+                "row_status": "normal",
                 "error_message": error_message,
             })
 
