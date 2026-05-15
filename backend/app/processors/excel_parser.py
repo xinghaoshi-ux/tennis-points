@@ -5,11 +5,26 @@ from app.repositories.player_repo import PlayerRepository
 from app.repositories.tournament_repo import TournamentRepository
 
 
+RESULT_TYPE_MAP = {
+    "冠军": "champion",
+    "亚军": "runner_up",
+    "四强": "semifinal",
+    "八强": "quarterfinal",
+    "参赛": "participant",
+}
+
+
 class ExcelParser:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.player_repo = PlayerRepository(db)
         self.tournament_repo = TournamentRepository(db)
+
+    def _normalize_result_type(self, raw: str) -> str:
+        raw = raw.strip()
+        if raw in RESULT_TYPE_MAP:
+            return RESULT_TYPE_MAP[raw]
+        return raw
 
     async def parse(self, file_path: str, tournament_id: int) -> list[dict]:
         tournament = await self.tournament_repo.get_by_id(tournament_id)
@@ -24,7 +39,8 @@ class ExcelParser:
                 continue
 
             # Expected columns: result_type, player1_name, player2_name, is_cross_province, is_cross_border
-            result_type = str(row[0]).strip() if row[0] else "participant"
+            raw_type = str(row[0]).strip() if row[0] else "participant"
+            result_type = self._normalize_result_type(raw_type)
             player1_name = str(row[1]).strip() if len(row) > 1 and row[1] else None
             player2_name = str(row[2]).strip() if len(row) > 2 and row[2] else None
             is_cross_province = bool(row[3]) if len(row) > 3 and row[3] else False
