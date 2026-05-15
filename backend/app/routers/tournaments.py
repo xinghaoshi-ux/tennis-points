@@ -137,3 +137,14 @@ async def revoke_publish(
         },
         "message": "ok",
     }
+
+
+@router.delete("/{tournament_id}", response_model=None)
+async def delete_tournament(
+    tournament_id: int,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    service = TournamentService(db)
+    await service.delete_tournament(tournament_id)
+    return {"message": "ok"}

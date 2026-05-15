@@ -42,3 +42,7 @@ class SeasonRepository:
                 setattr(season, key, value)
         await self.db.flush()
         return season
+
+    async def delete(self, season: Season) -> None:
+        await self.db.delete(season)
+        await self.db.flush()

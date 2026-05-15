@@ -1,6 +1,9 @@
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError
+from app.models.entries_points import EntriesPoints
+from app.models.event_result_player import EventResultPlayer
 from app.repositories.player_repo import PlayerRepository
 from app.schemas.player import PlayerCreate, PlayerUpdate
 
@@ -36,3 +39,17 @@ class PlayerService:
         player = await self.repo.update(player, **update_data)
         await self.db.commit()
         return player
+
+    async def delete_player(self, player_id: int):
+        player = await self.repo.get_by_id(player_id)
+        if not player:
+            raise NotFoundError(detail="选手不存在", code="PLAYER_NOT_FOUND")
+
+        await self.db.execute(
+            delete(EntriesPoints).where(EntriesPoints.player_id == player_id)
+        )
+        await self.db.execute(
+            delete(EventResultPlayer).where(EventResultPlayer.player_id == player_id)
+        )
+        await self.repo.delete(player)
+        await self.db.commit()

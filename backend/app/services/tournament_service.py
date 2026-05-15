@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import BusinessConflictError, NotFoundError
+from app.repositories.event_result_repo import EventResultRepository
 from app.repositories.ranking_repo import RankingRepository
 from app.repositories.season_repo import SeasonRepository
 from app.repositories.tournament_repo import TournamentRepository
@@ -66,3 +67,19 @@ class TournamentService:
         tournament.status = "completed"
         await self.db.commit()
         return tournament
+
+    async def delete_tournament(self, tournament_id: int):
+        tournament = await self.repo.get_by_id(tournament_id)
+        if not tournament:
+            raise NotFoundError(detail="赛事不存在", code="TOURNAMENT_NOT_FOUND")
+
+        await self.ranking_repo.delete_by_tournament(tournament_id)
+        event_result_repo = EventResultRepository(self.db)
+        await event_result_repo.delete_by_tournament(tournament_id)
+
+        from sqlalchemy import delete
+        from app.models.upload import Upload
+        await self.db.execute(delete(Upload).where(Upload.tournament_id == tournament_id))
+
+        await self.repo.delete(tournament)
+        await self.db.commit()

@@ -53,3 +53,7 @@ class TournamentRepository:
                 setattr(tournament, key, value)
         await self.db.flush()
         return tournament
+
+    async def delete(self, tournament: Tournament) -> None:
+        await self.db.delete(tournament)
+        await self.db.flush()

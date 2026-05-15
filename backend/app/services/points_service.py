@@ -20,16 +20,17 @@ class PointsService:
         tournament = await self.tournament_repo.get_by_id(tournament_id)
         if not tournament:
             raise NotFoundError(detail="赛事不存在", code="TOURNAMENT_NOT_FOUND")
-        if tournament.status != "completed":
+        if tournament.status not in ("completed", "published"):
             raise BusinessConflictError(
                 detail="请先完成赛事结果导入", code="POINTS_TOURNAMENT_NOT_COMPLETED"
             )
 
+        # Delete existing points for re-generation
         already_exists = await self.entries_repo.exists_for_tournament(tournament_id)
         if already_exists:
-            raise BusinessConflictError(
-                detail="该赛事积分已生成", code="POINTS_ALREADY_GENERATED"
-            )
+            from app.repositories.ranking_repo import RankingRepository
+            ranking_repo = RankingRepository(self.db)
+            await ranking_repo.delete_by_tournament(tournament_id)
 
         from app.processors.points_generator import PointsGenerator
 
@@ -39,4 +40,4 @@ class PointsService:
         tournament.status = "published"
         await self.db.commit()
 
-        return {"tournament_id": tournament_id, "message": "积分生成任务已提交"}
+        return {"tournament_id": tournament_id, "message": "积分生成完成"}

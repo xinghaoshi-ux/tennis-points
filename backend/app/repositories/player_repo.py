@@ -62,3 +62,7 @@ class PlayerRepository:
                 setattr(player, key, value)
         await self.db.flush()
         return player
+
+    async def delete(self, player: Player) -> None:
+        await self.db.delete(player)
+        await self.db.flush()

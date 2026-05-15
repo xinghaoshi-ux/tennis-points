@@ -103,3 +103,14 @@ async def update_player(
         },
         "message": "ok",
     }
+
+
+@router.delete("/{player_id}", response_model=None)
+async def delete_player(
+    player_id: int,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    service = PlayerService(db)
+    await service.delete_player(player_id)
+    return {"message": "ok"}

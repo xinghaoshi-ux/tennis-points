@@ -117,3 +117,14 @@ async def close_season(
         },
         "message": "ok",
     }
+
+
+@router.delete("/{season_id}", response_model=None)
+async def delete_season(
+    season_id: int,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    service = SeasonService(db)
+    await service.delete_season(season_id)
+    return {"message": "ok"}

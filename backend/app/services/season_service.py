@@ -1,6 +1,13 @@
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import BusinessConflictError, NotFoundError
+from app.models.entries_points import EntriesPoints
+from app.models.event_result import EventResult
+from app.models.event_result_player import EventResultPlayer
+from app.models.points_rule import PointsRule
+from app.models.tournament import Tournament
+from app.models.upload import Upload
 from app.repositories.season_repo import SeasonRepository
 from app.schemas.season import SeasonCreate, SeasonUpdate
 
@@ -74,3 +81,45 @@ class SeasonService:
 
     async def get_active_season(self):
         return await self.repo.get_active()
+
+    async def delete_season(self, season_id: int):
+        season = await self.repo.get_by_id(season_id)
+        if not season:
+            raise NotFoundError(detail="赛季不存在", code="SEASON_NOT_FOUND")
+
+        # Cascade delete all related data
+        tournaments = await self.db.execute(
+            select(Tournament.id).where(Tournament.season_id == season_id)
+        )
+        t_ids = [row[0] for row in tournaments.all()]
+
+        if t_ids:
+            # Delete entries_points
+            await self.db.execute(
+                delete(EntriesPoints).where(EntriesPoints.tournament_id.in_(t_ids))
+            )
+            # Delete event_result_players
+            er_result = await self.db.execute(
+                select(EventResult.id).where(EventResult.tournament_id.in_(t_ids))
+            )
+            er_ids = [row[0] for row in er_result.all()]
+            if er_ids:
+                await self.db.execute(
+                    delete(EventResultPlayer).where(EventResultPlayer.event_result_id.in_(er_ids))
+                )
+            await self.db.execute(
+                delete(EventResult).where(EventResult.tournament_id.in_(t_ids))
+            )
+            await self.db.execute(
+                delete(Upload).where(Upload.tournament_id.in_(t_ids))
+            )
+            await self.db.execute(
+                delete(Tournament).where(Tournament.season_id == season_id)
+            )
+
+        await self.db.execute(
+            delete(PointsRule).where(PointsRule.season_id == season_id)
+        )
+
+        await self.repo.delete(season)
+        await self.db.commit()
