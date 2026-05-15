@@ -25,3 +25,7 @@ export function generatePoints(id: number) {
 export function revokePublish(id: number) {
   return http.post<any, ApiResponse<any>>(`/admin/tournaments/${id}/revoke-publish`)
 }
+
+export function deleteTournament(id: number) {
+  return http.delete<any, any>(`/admin/tournaments/${id}`)
+}

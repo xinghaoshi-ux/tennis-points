@@ -26,11 +26,12 @@
           <el-tag :type="tStatusType(row.status)">{{ tStatusLabel(row.status) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="260">
+      <el-table-column label="操作" width="320">
         <template #default="{ row }">
           <el-button size="small" @click="openEdit(row)" :disabled="row.status !== 'draft'">编辑</el-button>
-          <el-button size="small" type="primary" @click="handleGenerate(row)" v-if="row.status === 'completed'">生成积分</el-button>
+          <el-button size="small" type="primary" @click="handleGenerate(row)" v-if="row.status === 'completed' || row.status === 'published'">生成积分</el-button>
           <el-button size="small" type="warning" @click="handleRevoke(row)" v-if="row.status === 'published'">撤回发布</el-button>
+          <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -84,7 +85,7 @@
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus'
-import { getTournaments, createTournament, updateTournament, generatePoints, revokePublish } from '@/api/tournaments'
+import { getTournaments, createTournament, updateTournament, generatePoints, revokePublish, deleteTournament } from '@/api/tournaments'
 import type { Tournament } from '@tha/shared/types/tournament'
 
 const levels = ['THA1000', 'THA800', 'THA500', 'THA200', 'THA_S', 'THA_A', 'THA_B', 'representative', 'bonus']
@@ -170,6 +171,15 @@ async function handleRevoke(row: Tournament) {
     ElMessage.success('已撤回发布')
     await fetchData()
   } catch (e: any) { ElMessage.error(e?.response?.data?.detail || '操作失败') }
+}
+
+async function handleDelete(row: Tournament) {
+  await ElMessageBox.confirm(`确认删除赛事"${row.name}"？相关积分和导入记录也会被删除。`, '确认删除', { type: 'warning' })
+  try {
+    await deleteTournament(row.id)
+    ElMessage.success('赛事已删除')
+    await fetchData()
+  } catch (e: any) { ElMessage.error(e?.response?.data?.detail || '删除失败') }
 }
 
 onMounted(fetchData)

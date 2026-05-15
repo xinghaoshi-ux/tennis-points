@@ -21,3 +21,7 @@ export function activateSeason(id: number) {
 export function closeSeason(id: number) {
   return http.post<any, ApiResponse<Season>>(`/admin/seasons/${id}/close`)
 }
+
+export function deleteSeason(id: number) {
+  return http.delete<any, any>(`/admin/seasons/${id}`)
+}

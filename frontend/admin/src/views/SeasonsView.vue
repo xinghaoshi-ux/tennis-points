@@ -14,11 +14,12 @@
           <el-tag :type="statusType(row.status)">{{ statusLabel(row.status) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="240">
+      <el-table-column label="操作" width="300">
         <template #default="{ row }">
           <el-button size="small" @click="openEdit(row)" :disabled="row.status !== 'draft'">编辑</el-button>
           <el-button size="small" type="success" @click="handleActivate(row)" v-if="row.status === 'draft'">激活</el-button>
           <el-button size="small" type="warning" @click="handleClose(row)" v-if="row.status === 'active'">关闭</el-button>
+          <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -46,7 +47,7 @@
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus'
-import { getSeasons, createSeason, updateSeason, activateSeason, closeSeason } from '@/api/seasons'
+import { getSeasons, createSeason, updateSeason, activateSeason, closeSeason, deleteSeason } from '@/api/seasons'
 import type { Season } from '@tha/shared/types/season'
 
 const loading = ref(false)
@@ -134,6 +135,17 @@ async function handleClose(row: Season) {
     await fetchData()
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.detail || '关闭失败')
+  }
+}
+
+async function handleDelete(row: Season) {
+  await ElMessageBox.confirm('删除赛季将同时删除该赛季下所有赛事、积分和规则数据，确认删除？', '确认删除', { type: 'warning' })
+  try {
+    await deleteSeason(row.id)
+    ElMessage.success('赛季已删除')
+    await fetchData()
+  } catch (e: any) {
+    ElMessage.error(e?.response?.data?.detail || '删除失败')
   }
 }
 

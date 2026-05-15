@@ -24,9 +24,10 @@
           <el-tag :type="row.status === 'active' ? 'success' : 'info'">{{ row.status === 'active' ? '活跃' : '停用' }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="120">
+      <el-table-column label="操作" width="160">
         <template #default="{ row }">
           <el-button size="small" @click="openEdit(row)">编辑</el-button>
+          <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -69,8 +70,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue'
-import { ElMessage, type FormInstance } from 'element-plus'
-import { getPlayers, createPlayer, updatePlayer } from '@/api/players'
+import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus'
+import { getPlayers, createPlayer, updatePlayer, deletePlayer } from '@/api/players'
 import { debounce } from '@tha/shared/utils/debounce'
 import type { Player } from '@tha/shared/types/player'
 
@@ -156,6 +157,17 @@ async function handleSubmit() {
 }
 
 onMounted(() => { fetchData(); fetchDepartments() })
+
+async function handleDelete(row: Player) {
+  await ElMessageBox.confirm(`确认删除选手"${row.full_name}"？相关积分记录也会被删除。`, '确认删除', { type: 'warning' })
+  try {
+    await deletePlayer(row.id)
+    ElMessage.success('选手已删除')
+    await fetchData()
+  } catch (e: any) {
+    ElMessage.error(e?.response?.data?.detail || '删除失败')
+  }
+}
 </script>
 
 <style scoped>

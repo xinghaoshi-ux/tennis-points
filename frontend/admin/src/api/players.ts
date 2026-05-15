@@ -17,3 +17,7 @@ export function createPlayer(data: PlayerCreate) {
 export function updatePlayer(id: number, data: PlayerUpdate) {
   return http.put<any, ApiResponse<Player>>(`/admin/players/${id}`, data)
 }
+
+export function deletePlayer(id: number) {
+  return http.delete<any, any>(`/admin/players/${id}`)
+}
