@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.exceptions import AppException
 from app.schemas.player import PlayerCreate, PlayerUpdate
 from app.services.player_service import PlayerService
 
@@ -114,3 +115,17 @@ async def delete_player(
     service = PlayerService(db)
     await service.delete_player(player_id)
     return {"message": "ok"}
+
+
+@router.post("/batch-import", response_model=None, status_code=201)
+async def batch_import_players(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    if not file.filename or not file.filename.endswith(".xlsx"):
+        raise AppException(detail="仅支持 .xlsx 格式", code="UPLOAD_FILE_TYPE_INVALID", status_code=400)
+
+    service = PlayerService(db)
+    result = await service.batch_import(file)
+    return {"data": result, "message": "ok"}

@@ -2,7 +2,10 @@
   <div class="page-container">
     <div class="page-header">
       <h2>选手管理</h2>
-      <el-button type="primary" @click="openCreate">新建选手</el-button>
+      <div>
+        <el-button @click="importDialogVisible = true">批量导入</el-button>
+        <el-button type="primary" @click="openCreate">新建选手</el-button>
+      </div>
     </div>
 
     <div class="filter-bar">
@@ -65,15 +68,37 @@
         <el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
       </template>
     </el-dialog>
+    <el-dialog v-model="importDialogVisible" title="批量导入选手" width="480px">
+      <div style="margin-bottom: 16px; color: #666; font-size: 13px;">
+        上传 Excel 文件（.xlsx），包含列：姓名、性别（男/女）、出生日期、院系。已存在的选手会更新信息。
+      </div>
+      <el-upload
+        ref="uploadRef"
+        :auto-upload="false"
+        :limit="1"
+        accept=".xlsx"
+        :on-change="handleFileChange"
+      >
+        <template #trigger>
+          <el-button>选择文件</el-button>
+        </template>
+      </el-upload>
+      <template #footer>
+        <el-button @click="importDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="importing" :disabled="!importFile" @click="handleImport">开始导入</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus'
-import { getPlayers, createPlayer, updatePlayer, deletePlayer } from '@/api/players'
+import { getPlayers, createPlayer, updatePlayer, deletePlayer, batchImportPlayers } from '@/api/players'
 import { debounce } from '@tha/shared/utils/debounce'
 import type { Player } from '@tha/shared/types/player'
+
+import type { UploadInstance, UploadFile } from 'element-plus'
 
 const loading = ref(false)
 const players = ref<Player[]>([])
@@ -88,6 +113,10 @@ const isEdit = ref(false)
 const editId = ref<number | null>(null)
 const submitting = ref(false)
 const formRef = ref<FormInstance>()
+const importDialogVisible = ref(false)
+const importing = ref(false)
+const importFile = ref<File | null>(null)
+const uploadRef = ref<UploadInstance>()
 
 const form = reactive({ full_name: '', gender: '', birth_date: '', department: '' })
 const rules = { full_name: [{ required: true, message: '请输入姓名', trigger: 'blur' }] }
@@ -153,6 +182,28 @@ async function handleSubmit() {
     ElMessage.error(e?.response?.data?.detail || '操作失败')
   } finally {
     submitting.value = false
+  }
+}
+
+function handleFileChange(uploadFile: UploadFile) {
+  importFile.value = uploadFile.raw || null
+}
+
+async function handleImport() {
+  if (!importFile.value) return
+  importing.value = true
+  try {
+    const res = await batchImportPlayers(importFile.value)
+    const d = res.data
+    ElMessage.success(`导入完成：新增 ${d.created} 人，更新 ${d.skipped} 人`)
+    importDialogVisible.value = false
+    importFile.value = null
+    uploadRef.value?.clearFiles()
+    await fetchData()
+  } catch (e: any) {
+    ElMessage.error(e?.response?.data?.detail || '导入失败')
+  } finally {
+    importing.value = false
   }
 }
 

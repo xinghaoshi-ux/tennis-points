@@ -21,3 +21,11 @@ export function updatePlayer(id: number, data: PlayerUpdate) {
 export function deletePlayer(id: number) {
   return http.delete<any, any>(`/admin/players/${id}`)
 }
+
+export function batchImportPlayers(file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return http.post<any, any>('/admin/players/batch-import', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
